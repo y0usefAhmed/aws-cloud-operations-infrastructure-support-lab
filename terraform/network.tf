@@ -1,6 +1,8 @@
 #---------------vpc----------------------
 resource "aws_vpc" "main" {
-  cidr_block = "10.40.0.0/16"
+  cidr_block           = "10.40.0.0/16"
+  enable_dns_support   = true
+  enable_dns_hostnames = true
   tags = {
     Name = "env"
   }
@@ -15,8 +17,8 @@ resource "aws_internet_gateway" "gw" {
 }
 #---------------pubsubnet--------------------
 resource "aws_subnet" "pub" {
-  vpc_id     = aws_vpc.main.id
-  cidr_block = "10.40.1.0/24"
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.40.1.0/24"
   availability_zone = "us-east-1a"
 
   tags = {
@@ -40,7 +42,7 @@ resource "aws_route_table_association" "example" {
 }
 #-------------eib----------------------
 resource "aws_eip" "lb" {
-  domain   = "vpc"
+  domain = "vpc"
 }
 #------------nat getway---------------
 resource "aws_nat_gateway" "ngw" {
@@ -55,8 +57,8 @@ resource "aws_nat_gateway" "ngw" {
 }
 #---------------prvsubnet--------------------
 resource "aws_subnet" "prv" {
-  vpc_id     = aws_vpc.main.id
-  cidr_block = "10.40.11.0/24"
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.40.11.0/24"
   availability_zone = "us-east-1a"
 
   tags = {
@@ -68,7 +70,7 @@ resource "aws_route_table" "rt1" {
   vpc_id = aws_vpc.main.id
 
   route {
-    cidr_block = "0.0.0.0/0"
+    cidr_block     = "0.0.0.0/0"
     nat_gateway_id = aws_nat_gateway.ngw.id
   }
 }
@@ -76,4 +78,15 @@ resource "aws_route_table" "rt1" {
 resource "aws_route_table_association" "example1" {
   subnet_id      = aws_subnet.prv.id
   route_table_id = aws_route_table.rt1.id
+}
+#---------------s3 endpoint-------------------------------
+resource "aws_vpc_endpoint" "s3" {
+  vpc_id            = aws_vpc.main.id
+  service_name      = "com.amazonaws.us-east-1.s3"
+  vpc_endpoint_type = "Gateway"
+  route_table_ids   = [aws_route_table.rt1.id]
+
+  tags = {
+    Environment = "test"
+  }
 }
